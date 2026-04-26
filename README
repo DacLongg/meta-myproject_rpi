@@ -1,41 +1,150 @@
-This README file contains information on the contents of the meta-myapp layer.
+# meta-myproject_rpi
 
-Please see the corresponding sections below for details.
+Layer Yocto cho Raspberry Pi. Project này đi kèm các script để dựng môi trường Yocto `kirkstone`, cấu hình build, build image và flash image ra SD card.
 
-Dependencies
-============
+## Cấu trúc mong muốn
 
-  URI: <first dependency>
-  branch: <branch name>
+Project nên nằm trong:
 
-  URI: <second dependency>
-  branch: <branch name>
+```bash
+~/yocto/meta-myproject_rpi
+```
 
-  .
-  .
-  .
+Nếu clone project ở nơi khác nhưng thư mục vẫn tên `meta-myproject_rpi`, script `setup-yocto-build.sh` sẽ tạo `~/yocto` và move project vào đúng vị trí.
 
-Patches
-=======
+Sau khi setup, layout chính sẽ là:
 
-Please submit any patches against the meta-myapp layer to the xxxx mailing list (xxxx@zzzz.org)
-and cc: the maintainer:
+```text
+~/yocto/
+  poky/
+  meta-openembedded/
+  meta-raspberrypi/
+  meta-myproject_rpi/
+  build-rpi/
+  downloads/
+  sstate-cache/
+```
 
-Maintainer: XXX YYYYYY <xxx.yyyyyy@zzzzz.com>
+## 1. Setup môi trường Yocto
 
-Table of Contents
-=================
+Chạy trong thư mục project:
 
-  I. Adding the meta-myapp layer to your build
- II. Misc
+```bash
+./setup-yocto-build.sh
+```
 
+Script sẽ:
 
-I. Adding the meta-myapp layer to your build
-=================================================
+- Kiểm tra project có nằm đúng `~/yocto/meta-myproject_rpi` không.
+- Kiểm tra và cài các dependency cần cho Yocto nếu thiếu.
+- Clone các source/layer cần thiết:
+  - `poky`, branch `kirkstone`
+  - `meta-raspberrypi`, branch `kirkstone`
+  - `meta-openembedded`, branch `kirkstone`
+- Tạo build directory `~/yocto/build-rpi`.
+- Tạo helper env script `~/yocto/setup-yocto-env.sh`.
+- Render `build-rpi/conf/bblayers.conf` từ `conf/build/bblayers.conf.in`.
+- Apply cấu hình project vào `build-rpi/conf/local.conf` từ `conf/build/local.conf.append`.
 
-Run 'bitbake-layers add-layer meta-myapp'
+Sau khi setup, có thể vào môi trường build bằng:
 
-II. Misc
-========
+```bash
+source ~/yocto/setup-yocto-env.sh
+```
 
---- replace with specific information about the meta-myapp layer ---
+## 2. Build image Raspberry Pi
+
+Chạy:
+
+```bash
+./build_rpi_image.sh
+```
+
+Mặc định script build:
+
+```bash
+IMAGE_NAME=core-image-minimal
+MACHINE=raspberrypi3
+BUILD_DIR=~/yocto/build-rpi
+```
+
+Script sẽ tự source Yocto environment, chuyển sang `~/yocto/build-rpi`, chạy `bitbake`, sau đó copy image về:
+
+```bash
+meta-myproject_rpi/output/
+```
+
+Kết quả chính là file `.wic`, ví dụ:
+
+```text
+output/core-image-minimal-raspberrypi3-*.rootfs.wic
+```
+
+Có thể đổi image hoặc machine khi chạy:
+
+```bash
+IMAGE_NAME=core-image-base MACHINE=raspberrypi3 ./build_rpi_image.sh
+```
+
+## 3. Flash image ra SD card
+
+Kiểm tra thiết bị SD card trước:
+
+```bash
+lsblk
+```
+
+Flash image mới nhất trong thư mục `output`:
+
+```bash
+sudo ./flash_rpi_sd.sh
+```
+
+Script sẽ:
+
+- Lấy file `.wic` mới nhất trong `meta-myproject_rpi/output`.
+- Hiển thị danh sách block device.
+- Hỏi device cần flash, mặc định `/dev/sda`.
+- Yêu cầu gõ `YES` trước khi ghi image.
+- Ghi image bằng `dd`.
+
+Có thể đổi device mặc định:
+
+```bash
+sudo DEFAULT_DEVICE=/dev/sdb ./flash_rpi_sd.sh
+```
+
+## Project Này Hỗ Trợ Gì
+
+Project này hỗ trợ quản lý cấu hình Yocto theo source code thay vì phụ thuộc vào state cục bộ trong thư mục build.
+
+- `conf/layer.conf`: khai báo layer `meta-myproject_rpi` cho Yocto.
+- `conf/build/bblayers.conf.in`: template danh sách layer cần dùng cho build.
+- `conf/build/local.conf.append`: cấu hình project được apply vào `build-rpi/conf/local.conf`.
+- `setup-yocto-build.sh`: setup máy build từ gần như trạng thái sạch.
+- `build_rpi_image.sh`: build image từ project directory và đưa artifact về `output`.
+- `flash_rpi_sd.sh`: flash file `.wic` trong `output` ra SD card.
+- `recipes-example/`: recipe ví dụ từ Yocto layer template.
+- `recipes-myapp/hello/hello.bb`: recipe ứng dụng mẫu của project.
+
+Các cấu hình quan trọng hiện nằm trong `conf/build/local.conf.append`:
+
+```conf
+MACHINE = "raspberrypi3"
+DISTRO ?= "poky"
+PACKAGE_CLASSES ?= "package_rpm"
+DL_DIR ?= "${TOPDIR}/../downloads"
+SSTATE_DIR ?= "${TOPDIR}/../sstate-cache"
+EXTRA_IMAGE_FEATURES ?= "debug-tweaks"
+EXTRA_IMAGE_FEATURES += "ssh-server-openssh"
+PATCHRESOLVE = "noop"
+```
+
+Nhờ vậy, khi clone project sang máy khác, chỉ cần chạy `./setup-yocto-build.sh` là build directory sẽ nhận đúng cấu hình của project.
+
+## Ghi chú
+
+- Không commit `build-rpi/`, `downloads/`, `sstate-cache/` hoặc `output/`.
+- Nếu muốn đổi board Raspberry Pi, sửa `MACHINE` trong `conf/build/local.conf.append`.
+- Nếu muốn thêm layer mới, thêm vào `conf/build/bblayers.conf.in`.
+- Nếu muốn thêm package vào image, nên tạo image recipe riêng hoặc append vào cấu hình image trong layer này.
