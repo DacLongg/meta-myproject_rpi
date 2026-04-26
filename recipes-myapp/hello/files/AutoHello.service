@@ -1,0 +1,11 @@
+[Unit]
+Description=AutoHello App
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/AutoHello
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

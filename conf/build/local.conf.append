@@ -1,0 +1,12 @@
+# Project configuration for meta-myproject_rpi.
+MACHINE = "raspberrypi3"
+DISTRO ?= "poky"
+PACKAGE_CLASSES ?= "package_rpm"
+
+DL_DIR ?= "${TOPDIR}/../downloads"
+SSTATE_DIR ?= "${TOPDIR}/../sstate-cache"
+
+EXTRA_IMAGE_FEATURES ?= "debug-tweaks"
+EXTRA_IMAGE_FEATURES += "ssh-server-openssh"
+
+PATCHRESOLVE = "noop"
