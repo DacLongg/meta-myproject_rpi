@@ -3,7 +3,7 @@ Description=AutoHello App
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/AutoHello
+ExecStart=/usr/bin/hello
 Restart=always
 RestartSec=2
 

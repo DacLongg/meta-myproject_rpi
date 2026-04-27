@@ -8,6 +8,24 @@ DEFAULT_DEVICE="${DEFAULT_DEVICE:-/dev/sda}"
 
 die() { printf '[ERROR] %s\n' "$*" >&2; exit 1; }
 
+device_basename() {
+  basename "$1"
+}
+
+root_disk_name() {
+  local root_source root_pkname
+
+  root_source="$(findmnt -n -o SOURCE / 2>/dev/null || true)"
+  [[ -n "$root_source" ]] || return 0
+
+  root_pkname="$(lsblk -no PKNAME "$root_source" 2>/dev/null || true)"
+  if [[ -n "$root_pkname" ]]; then
+    printf '%s\n' "$root_pkname"
+  else
+    device_basename "$root_source"
+  fi
+}
+
 if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
   die "Hãy chạy bằng root: sudo ./flash_rpi_sd.sh"
 fi
@@ -28,13 +46,21 @@ wic_file="$(ls -t "${wic_files[@]}" | head -n 1)"
 
 printf 'Image sẽ flash:\n  %s\n\n' "$wic_file"
 printf 'Block devices hiện có:\n'
-lsblk
+lsblk -o NAME,TYPE,SIZE,MODEL,TRAN,MOUNTPOINTS
 printf '\n'
 
 read -r -p "Nhập SD device để flash [default: $DEFAULT_DEVICE]: " device
 device="${device:-$DEFAULT_DEVICE}"
 
 [[ -b "$device" ]] || die "Block device không hợp lệ: $device"
+
+device_type="$(lsblk -no TYPE "$device" 2>/dev/null || true)"
+[[ "$device_type" == "disk" ]] || die "$device không phải whole-disk device. Hãy chọn dạng /dev/sdX hoặc /dev/mmcblkX, không chọn partition."
+
+root_disk="$(root_disk_name)"
+if [[ -n "$root_disk" && "$(device_basename "$device")" == "$root_disk" ]]; then
+  die "$device có vẻ là ổ đang chạy hệ điều hành hiện tại. Dừng để tránh ghi nhầm."
+fi
 
 printf '\nCẢNH BÁO: toàn bộ dữ liệu trên %s sẽ bị xóa.\n' "$device"
 read -r -p 'Gõ YES để tiếp tục: ' confirm

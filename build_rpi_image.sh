@@ -3,7 +3,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 PROJECT_NAME="meta-myproject_rpi"
-IMAGE_NAME="${IMAGE_NAME:-core-image-minimal}"
+IMAGE_NAME="${IMAGE_NAME:-myproject-rpi-image}"
 MACHINE="${MACHINE:-raspberrypi3}"
 YOCTO_ROOT="${YOCTO_ROOT:-$HOME/yocto}"
 BUILD_DIR_NAME="${BUILD_DIR_NAME:-build-rpi}"

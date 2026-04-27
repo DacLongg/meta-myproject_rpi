@@ -60,10 +60,10 @@ Chạy:
 ./build_rpi_image.sh
 ```
 
-Mặc định script build:
+Mặc định script build image riêng của project:
 
 ```bash
-IMAGE_NAME=core-image-minimal
+IMAGE_NAME=myproject-rpi-image
 MACHINE=raspberrypi3
 BUILD_DIR=~/yocto/build-rpi
 ```
@@ -77,7 +77,7 @@ meta-myproject_rpi/output/
 Kết quả chính là file `.wic`, ví dụ:
 
 ```text
-output/core-image-minimal-raspberrypi3-*.rootfs.wic
+output/myproject-rpi-image-raspberrypi3-*.rootfs.wic
 ```
 
 Có thể đổi image hoặc machine khi chạy:
@@ -114,6 +114,8 @@ Có thể đổi device mặc định:
 sudo DEFAULT_DEVICE=/dev/sdb ./flash_rpi_sd.sh
 ```
 
+Hướng dẫn chi tiết và các lưu ý an toàn khi flash nằm trong `FLASH_SD_GUIDE.md`.
+
 ## Project Này Hỗ Trợ Gì
 
 Project này hỗ trợ quản lý cấu hình Yocto theo source code thay vì phụ thuộc vào state cục bộ trong thư mục build.
@@ -124,6 +126,7 @@ Project này hỗ trợ quản lý cấu hình Yocto theo source code thay vì p
 - `setup-yocto-build.sh`: setup máy build từ gần như trạng thái sạch.
 - `build_rpi_image.sh`: build image từ project directory và đưa artifact về `output`.
 - `flash_rpi_sd.sh`: flash file `.wic` trong `output` ra SD card.
+- `recipes-core/images/myproject-rpi-image.bb`: image recipe chính của project.
 - `recipes-example/`: recipe ví dụ từ Yocto layer template.
 - `recipes-myapp/hello/hello.bb`: recipe ứng dụng mẫu của project.
 
@@ -137,6 +140,9 @@ DL_DIR ?= "${TOPDIR}/../downloads"
 SSTATE_DIR ?= "${TOPDIR}/../sstate-cache"
 EXTRA_IMAGE_FEATURES ?= "debug-tweaks"
 EXTRA_IMAGE_FEATURES += "ssh-server-openssh"
+DISTRO_FEATURES:append = " systemd"
+VIRTUAL-RUNTIME_init_manager = "systemd"
+VIRTUAL-RUNTIME_initscripts = ""
 PATCHRESOLVE = "noop"
 ```
 
@@ -147,4 +153,4 @@ Nhờ vậy, khi clone project sang máy khác, chỉ cần chạy `./setup-yoct
 - Không commit `build-rpi/`, `downloads/`, `sstate-cache/` hoặc `output/`.
 - Nếu muốn đổi board Raspberry Pi, sửa `MACHINE` trong `conf/build/local.conf.append`.
 - Nếu muốn thêm layer mới, thêm vào `conf/build/bblayers.conf.in`.
-- Nếu muốn thêm package vào image, nên tạo image recipe riêng hoặc append vào cấu hình image trong layer này.
+- Nếu muốn thêm package vào image, sửa `recipes-core/images/myproject-rpi-image.bb`.

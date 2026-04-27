@@ -1,0 +1,13 @@
+[Unit]
+Description=MyProject application service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/myproject-app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
