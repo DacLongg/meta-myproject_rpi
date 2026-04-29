@@ -9,6 +9,11 @@
     ],
     "files.associations": {
         "*.conf": "bitbake",
-        "*.inc": "bitbake"
+        "*.inc": "bitbake",
+        "*.bb": "bitbake",
+        "*.bbappend": "bitbake",
+        "*.dts": "devicetree",
+        "*.dtsi": "devicetree"
+
     }
 }

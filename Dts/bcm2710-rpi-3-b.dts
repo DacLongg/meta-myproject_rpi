@@ -1,0 +1,349 @@
+/dts-v1/;
+
+/*
+ * Top-level DTS for Raspberry Pi 3 Model B.
+ *
+ * Read this file as:
+ * 1. "bcm2710.dtsi" provides the SoC-level blocks for BCM2710/BCM2837.
+ * 2. "bcm2709-rpi.dtsi" adds Raspberry Pi platform glue shared by this family.
+ * 3. The remaining includes add board-specific peripherals that Raspberry Pi
+ *    splits into reusable fragments, such as Ethernet over USB, CSI lane
+ *    wiring, the I2C0 mux setup, and Bluetooth.
+ *
+ * For a custom board, this is the file you normally copy and rename first,
+ * because it is the final board description that ties the shared pieces
+ * together. The included .dtsi files are usually kept as reference, then you
+ * either reuse them unchanged or inline only the parts that differ on your PCB.
+ */
+#include "bcm2710.dtsi"
+#include "bcm2709-rpi.dtsi"
+#include "bcm283x-rpi-smsc9514.dtsi"
+#include "bcm283x-rpi-csi1-2lane.dtsi"
+#include "bcm283x-rpi-i2c0mux_0_44.dtsi"
+#include "bcm271x-rpi-bt.dtsi"
+
+/ {
+	/* Match strings used by the kernel driver model and userspace. */
+	compatible = "raspberrypi,3-model-b", "brcm,bcm2837";
+	model = "Raspberry Pi 3 Model B";
+
+	chosen {
+		/*
+		 * Kernel command line defaults injected by the board DTS.
+		 * On a custom board, keep this section minimal and move policy-heavy
+		 * bootargs to the bootloader or Yocto config where possible.
+		 */
+		bootargs = "coherent_pool=1M 8250.nr_uarts=1 snd_bcm2835.enable_compat_alsa=0 snd_bcm2835.enable_hdmi=1";
+	};
+
+	aliases {
+		/*
+		 * Stable logical names used by Linux and userspace.
+		 * Changing these changes which UART appears as serial0/serial1.
+		 */
+		serial0 = &uart1;
+		serial1 = &uart0;
+		mmc1 = &mmcnr;
+	};
+};
+
+&gpio {
+	/*
+	 * Taken from rpi_SCH_3b_1p2_reduced.pdf and
+	 * the official GPU firmware DT blob.
+	 *
+	 * Legend:
+	 * "NC" = not connected (no rail from the SoC)
+	 * "FOO" = GPIO line named "FOO" on the schematic
+	 * "FOO_N" = GPIO line named "FOO" on schematic, active low
+	 */
+	gpio-line-names = "ID_SDA",
+			  "ID_SCL",
+			  "SDA1",
+			  "SCL1",
+			  "GPIO_GCLK",
+			  "GPIO5",
+			  "GPIO6",
+			  "SPI_CE1_N",
+			  "SPI_CE0_N",
+			  "SPI_MISO",
+			  "SPI_MOSI",
+			  "SPI_SCLK",
+			  "GPIO12",
+			  "GPIO13",
+			  /* Serial port */
+			  "TXD1",
+			  "RXD1",
+			  "GPIO16",
+			  "GPIO17",
+			  "GPIO18",
+			  "GPIO19",
+			  "GPIO20",
+			  "GPIO21",
+			  "GPIO22",
+			  "GPIO23",
+			  "GPIO24",
+			  "GPIO25",
+			  "GPIO26",
+			  "GPIO27",
+			  "NC", /* GPIO 28 */
+			  "LAN_RUN_BOOT",
+			  /* Used by BT module */
+			  "CTS0",
+			  "RTS0",
+			  "TXD0",
+			  "RXD0",
+			  /* Used by Wifi */
+			  "SD1_CLK",
+			  "SD1_CMD",
+			  "SD1_DATA0",
+			  "SD1_DATA1",
+			  "SD1_DATA2",
+			  "SD1_DATA3",
+			  "PWM0_OUT",
+			  "PWM1_OUT",
+			  "ETH_CLK",
+			  "WIFI_CLK",
+			  "SDA0",
+			  "SCL0",
+			  "SMPS_SCL",
+			  "SMPS_SDA",
+			  /* Used by SD Card */
+			  "SD_CLK_R",
+			  "SD_CMD_R",
+			  "SD_DATA0_R",
+			  "SD_DATA1_R",
+			  "SD_DATA2_R",
+			  "SD_DATA3_R";
+
+	/* Header SPI0 pins: GPIO9/10/11 => MISO/MOSI/SCLK. */
+	spi0_pins: spi0_pins {
+		brcm,pins = <9 10 11>;
+		brcm,function = <4>; /* alt0 */
+	};
+
+	/* Header chip-select pins for SPI0 CE0/CE1. */
+	spi0_cs_pins: spi0_cs_pins {
+		brcm,pins = <8 7>;
+		brcm,function = <1>; /* output */
+	};
+
+	/* I2C0 is usually reserved for HAT ID EEPROM or internal use. */
+	i2c0_pins: i2c0 {
+		brcm,pins = <0 1>;
+		brcm,function = <4>;
+	};
+
+	/* I2C1 is the main 40-pin header I2C bus on Raspberry Pi boards. */
+	i2c1_pins: i2c1 {
+		brcm,pins = <2 3>;
+		brcm,function = <4>;
+	};
+
+	/* PCM/I2S audio pins, often repurposed by custom boards. */
+	i2s_pins: i2s {
+		brcm,pins = <18 19 20 21>;
+		brcm,function = <4>; /* alt0 */
+	};
+
+	/* SD1 is wired to the on-board Wi-Fi chip on this board. */
+	sdio_pins: sdio_pins {
+		brcm,pins =     <34 35 36 37 38 39>;
+		brcm,function = <7>; // alt3 = SD1
+		brcm,pull =     <0 2 2 2 2 2>;
+	};
+
+	/* GPCLK2 is used as a Bluetooth low-power clock source. */
+	bt_pins: bt_pins {
+		brcm,pins = <43>;
+		brcm,function = <4>; /* alt0:GPCLK2 */
+		brcm,pull = <0>;
+	};
+
+	/* PL011 UART routed to the on-board Bluetooth module. */
+	uart0_pins: uart0_pins {
+		brcm,pins = <32 33>;
+		brcm,function = <7>; /* alt3=UART0 */
+		brcm,pull = <0 2>;
+	};
+
+	/*
+	 * Mini-UART is intentionally left empty here because its default pin mux
+	 * comes from shared Raspberry Pi support. This is a useful reminder that
+	 * not every node in the board DTS needs to restate all SoC defaults.
+	 */
+	uart1_pins: uart1_pins {
+		brcm,pins;
+		brcm,function;
+		brcm,pull;
+	};
+
+	/* Analog audio uses PWM on GPIO40/41 on Raspberry Pi boards. */
+	audio_pins: audio_pins {
+		brcm,pins = <40 41>;
+		brcm,function = <4>;
+	};
+};
+
+&mmcnr {
+	/* Non-removable SDIO bus feeding the soldered Wi-Fi combo chip. */
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdio_pins>;
+	bus-width = <4>;
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	brcmf: wifi@1 {
+		/* Fullmac Broadcom Wi-Fi function exposed on SDIO function 1. */
+		reg = <1>;
+		compatible = "brcm,bcm4329-fmac";
+	};
+};
+
+&soc {
+	/*
+	 * Virtual GPIO lines are not real SoC pads. The Raspberry Pi firmware
+	 * exposes control bits such as camera and power signals through this node.
+	 */
+	virtgpio: virtgpio {
+		compatible = "brcm,bcm2835-virtgpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		firmware = <&firmware>;
+		status = "okay";
+	};
+
+};
+
+&firmware {
+	/*
+	 * GPIO expander backed by VideoCore firmware. Several board-management
+	 * signals, including BT/Wi-Fi power enables, live here instead of in the
+	 * ARM-visible GPIO block.
+	 */
+	expgpio: expgpio {
+		compatible = "raspberrypi,firmware-gpio";
+		gpio-controller;
+		#gpio-cells = <2>;
+		gpio-line-names = "BT_ON",
+				  "WL_ON",
+				  "STATUS_LED",
+				  "LAN_RUN",
+				  "HDMI_HPD_N",
+				  "CAM_GPIO0",
+				  "CAM_GPIO1",
+				  "PWR_LOW_N";
+		status = "okay";
+	};
+};
+
+&uart0 {
+	/* UART0 is dedicated to Bluetooth on the stock Pi 3B design. */
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart0_pins &bt_pins>;
+	status = "okay";
+};
+
+&uart1 {
+	/* Mini-UART is exported as serial0 for the default Linux console path. */
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart1_pins>;
+	status = "okay";
+};
+
+&bt {
+	/* Override the fragment from bcm271x-rpi-bt.dtsi for this board. */
+	max-speed = <921600>;
+};
+
+&spi0 {
+	/* Default enablement of user-facing SPI devices on the 40-pin header. */
+	pinctrl-names = "default";
+	pinctrl-0 = <&spi0_pins &spi0_cs_pins>;
+	cs-gpios = <&gpio 8 1>, <&gpio 7 1>;
+
+	spidev0: spidev@0{
+		/*
+		 * Generic userspace spidev endpoints.
+		 * Custom boards usually replace these with real peripherals.
+		 */
+		compatible = "spidev";
+		reg = <0>;	/* CE0 */
+		#address-cells = <1>;
+		#size-cells = <0>;
+		spi-max-frequency = <125000000>;
+	};
+
+	spidev1: spidev@1{
+		compatible = "spidev";
+		reg = <1>;	/* CE1 */
+		#address-cells = <1>;
+		#size-cells = <0>;
+		spi-max-frequency = <125000000>;
+	};
+};
+
+&i2c0if {
+	/* Interface side of the I2C0 mux fragment included above. */
+	clock-frequency = <100000>;
+};
+
+&i2c1 {
+	/* Main external I2C bus on the Pi header. */
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c1_pins>;
+	clock-frequency = <100000>;
+};
+
+&i2c2 {
+	/* Internal auxiliary bus; often unused on simpler custom boards. */
+	clock-frequency = <100000>;
+};
+
+&i2s {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2s_pins>;
+};
+
+&leds {
+	act_led: led-act {
+		label = "led0";
+		linux,default-trigger = "mmc0";
+		gpios = <&virtgpio 0 0>;
+	};
+
+	pwr_led: led-pwr {
+		label = "led1";
+		linux,default-trigger = "input";
+		gpios = <&expgpio 7 0>;
+	};
+};
+
+&hdmi {
+	hpd-gpios = <&expgpio 4 GPIO_ACTIVE_LOW>;
+};
+
+&audio {
+	pinctrl-names = "default";
+	pinctrl-0 = <&audio_pins>;
+};
+
+&cam1_reg {
+	gpio = <&expgpio 5 GPIO_ACTIVE_HIGH>;
+};
+
+cam0_reg: &cam_dummy_reg {
+};
+
+/ {
+	__overrides__ {
+		act_led_gpio = <&act_led>,"gpios:4";
+		act_led_activelow = <&act_led>,"gpios:8";
+		act_led_trigger = <&act_led>,"linux,default-trigger";
+
+		pwr_led_gpio = <&pwr_led>,"gpios:4";
+		pwr_led_activelow = <&pwr_led>,"gpios:8";
+		pwr_led_trigger = <&pwr_led>,"linux,default-trigger";
+	};
+};

@@ -1,5 +1,5 @@
 # Project configuration for meta-myproject_rpi.
-MACHINE = "raspberrypi3"
+MACHINE = "myproject-rpi"
 DISTRO ?= "poky"
 PACKAGE_CLASSES ?= "package_rpm"
 
@@ -14,3 +14,11 @@ VIRTUAL-RUNTIME_init_manager = "systemd"
 VIRTUAL-RUNTIME_initscripts = ""
 
 PATCHRESOLVE = "noop"
+
+# Limit build resource usage for a 6C/12T host with 8 GB RAM.
+BB_NUMBER_THREADS = "3"
+PARALLEL_MAKE = "-j 3"
+PARALLEL_MAKEINST = "-j 3"
+
+# Temporary workaround for hosts behind TLS inspection/self-signed proxies.
+FETCHCMD_wget = "/usr/bin/env wget --no-check-certificate -t 2 -T 100"

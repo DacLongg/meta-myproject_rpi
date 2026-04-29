@@ -1,0 +1,18 @@
+/*
+ * Raspberry Pi family glue shared by BCM2709/2710-era boards.
+ *
+ * This file does not describe a complete board. It layers Raspberry Pi
+ * specific integrations on top of lower-level SoC files. A custom board rarely
+ * starts here directly; instead, a board DTS includes this file and then
+ * overrides only what differs on the PCB.
+ */
+#include "bcm2708-rpi.dtsi"
+
+&vchiq {
+	/*
+	 * VCHIQ is the mailbox/IPC path between ARM and VideoCore firmware.
+	 * The compatible string is widened here so Pi 2/Pi 3 family boards bind
+	 * correctly while still falling back to the older bcm2835-compatible path.
+	 */
+	compatible = "brcm,bcm2836-vchiq", "brcm,bcm2835-vchiq";
+};

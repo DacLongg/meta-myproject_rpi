@@ -4,7 +4,7 @@ IFS=$'\n\t'
 
 PROJECT_NAME="meta-myproject_rpi"
 IMAGE_NAME="${IMAGE_NAME:-myproject-rpi-image}"
-MACHINE="${MACHINE:-raspberrypi3}"
+MACHINE="${MACHINE:-myproject-rpi}"
 YOCTO_ROOT="${YOCTO_ROOT:-$HOME/yocto}"
 BUILD_DIR_NAME="${BUILD_DIR_NAME:-build-rpi}"
 
