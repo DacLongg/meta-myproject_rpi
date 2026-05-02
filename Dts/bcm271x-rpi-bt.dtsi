@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: GPL-2.0
+
+/*
+ * Shared Bluetooth fragments for Raspberry Pi boards using Broadcom combo
+ * chips. This file defines both possible attachment points:
+ * - "bt" on uart0 (PL011)
+ * - "minibt" on uart1 (mini-UART)
+ *
+ * Board DTS files decide which UART is actually routed to the BT module and
+ * then enable/override the matching child node.
+ */
+&uart0 {
+	bt: bluetooth {
+		/* Default variant using the full PL011 UART for better baud stability. */
+		compatible = "brcm,bcm43438-bt";
+		max-speed = <3000000>;
+		shutdown-gpios = <&expgpio 0 GPIO_ACTIVE_HIGH>;
+		status = "disabled";
+	};
+};
+
+&uart1 {
+	minibt: bluetooth {
+		/*
+		 * Alternate variant using mini-UART.
+		 * Common on boards that want PL011 for the Linux console instead.
+		 */
+		compatible = "brcm,bcm43438-bt";
+		max-speed = <460800>;
+		shutdown-gpios = <&expgpio 0 GPIO_ACTIVE_HIGH>;
+		status = "disabled";
+	};
+};
+
+/ {
+	__overrides__ {
+		/*
+		 * Firmware override names consumed by Raspberry Pi boot firmware:
+		 * - krnbt toggles the selected Bluetooth node
+		 * - krnbt_baudrate overrides the default BT UART speed
+		 */
+		krnbt = <&bt>,"status";
+		krnbt_baudrate = <&bt>,"max-speed:0";
+	};
+};

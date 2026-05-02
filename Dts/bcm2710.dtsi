@@ -1,0 +1,46 @@
+/*
+ * SoC-level description for BCM2710 / BCM2837.
+ *
+ * This is not board-specific. It defines CPU-family capabilities and shared
+ * blocks that every board using this SoC inherits. Board DTS files should only
+ * override this when a peripheral is wired differently or intentionally unused.
+ */
+#include "bcm2837.dtsi"
+#include "bcm270x.dtsi"
+
+/ {
+	/* SoC compatibility chain, from most specific to fallback. */
+	compatible = "brcm,bcm2837", "brcm,bcm2836";
+
+	arm-pmu {
+		/* CPU performance monitor unit for Cortex-A53 cores. */
+		compatible = "arm,cortex-a53-pmu", "arm,cortex-a7-pmu";
+	};
+
+	soc {
+		/*
+		 * The inherited timer node is removed because BCM2710 uses a different
+		 * arrangement than the older file it inherits from.
+		 */
+		/delete-node/ timer@7e003000;
+	};
+
+	__overrides__ {
+		/*
+		 * Firmware/config.txt override hook that lets users change CPU frequency
+		 * without patching the DTS source.
+		 */
+		arm_freq = <&cpu0>, "clock-frequency:0",
+		       <&cpu1>, "clock-frequency:0",
+		       <&cpu2>, "clock-frequency:0",
+		       <&cpu3>, "clock-frequency:0";
+	};
+};
+
+&vc4 {
+	/*
+	 * Disabled here by default in the base SoC layer.
+	 * Board files or overlays can re-enable the graphics stack as needed.
+	 */
+	status = "disabled";
+};

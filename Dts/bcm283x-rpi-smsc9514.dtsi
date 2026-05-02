@@ -1,0 +1,30 @@
+/*
+ * Reusable fragment for the SMSC9514 USB hub + Ethernet chip used on several
+ * classic Raspberry Pi boards.
+ *
+ * This is a good example of why Raspberry Pi DTS trees contain many small
+ * include files: the same hardware block can be attached to multiple board
+ * DTS files without duplicating the USB/Ethernet description each time.
+ */
+/ {
+	aliases {
+		/* Linux will expose this as the first Ethernet interface. */
+		ethernet0 = &ethernet;
+	};
+};
+
+&usb {
+	usb1@1 {
+		/* USB port 1 on the internal hub corresponds to the LAN9514 device. */
+		compatible = "usb424,9514";
+		reg = <1>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		ethernet: usbether@1 {
+			/* Ethernet MAC/PHY function inside the LAN9514 combo device. */
+			compatible = "usb424,ec00";
+			reg = <1>;
+		};
+	};
+};

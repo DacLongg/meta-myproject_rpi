@@ -19,11 +19,11 @@ info() { printf '[INFO] %s\n' "$*"; }
 die() { printf '[ERROR] %s\n' "$*" >&2; exit 1; }
 
 if [[ "$(basename "$PROJECT_DIR")" != "$PROJECT_NAME" ]]; then
-  die "Script phải nằm trong thư mục project $PROJECT_NAME, hiện tại là $PROJECT_DIR"
+  die "Script must be located in the project directory $PROJECT_NAME, currently in $PROJECT_DIR"
 fi
 
 if [[ ! -d "$BUILD_DIR/conf" ]]; then
-  die "Chưa có build environment: $BUILD_DIR. Hãy chạy ./setup-yocto-build.sh trước."
+  die "Cannot find build environment: $BUILD_DIR. Please run ./setup-yocto-build.sh first."
 fi
 
 info "Áp dụng cấu hình project vào build dir"
@@ -42,7 +42,7 @@ elif [[ -f "$INIT_SCRIPT" ]]; then
   source "$INIT_SCRIPT" "$BUILD_DIR" >/dev/null
   set -u
 else
-  die "Không tìm thấy Yocto env script. Hãy chạy ./setup-yocto-build.sh trước."
+  die "Cannot find Yocto env script. Please run ./setup-yocto-build.sh first."
 fi
 
 info "Build app recipe: $APP_NAME"
@@ -59,7 +59,7 @@ mapfile -t packages < <(
 )
 
 if [[ ${#packages[@]} -eq 0 ]]; then
-  die "Không tìm thấy package output cho $APP_NAME trong $BUILD_DIR/tmp/deploy"
+  die "Cannot find package output for $APP_NAME in $BUILD_DIR/tmp/deploy"
 fi
 
 cp -f "${packages[@]}" "$PACKAGE_OUTPUT_DIR/"
@@ -75,7 +75,7 @@ mapfile -t binaries < <(
 )
 
 if [[ ${#binaries[@]} -eq 0 ]]; then
-  die "Không tìm thấy file chạy trực tiếp cho $APP_NAME trong $BUILD_DIR/tmp/work"
+  die "Cannot find executable output for $APP_NAME in $BUILD_DIR/tmp/work"
 fi
 
 latest_binary="$(ls -t "${binaries[@]}" | head -n 1)"

@@ -27,11 +27,11 @@ root_disk_name() {
 }
 
 if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
-  die "Hãy chạy bằng root: sudo ./flash_rpi_sd.sh"
+  die "Must be root: sudo ./flash_rpi_sd.sh"
 fi
 
 if [[ ! -d "$OUTPUT_DIR" ]]; then
-  die "Không tìm thấy output directory: $OUTPUT_DIR. Hãy chạy ./build_rpi_image.sh trước."
+  die "Cannot find output directory: $OUTPUT_DIR. Please run ./build_rpi_image.sh first."
 fi
 
 shopt -s nullglob
@@ -39,37 +39,37 @@ wic_files=("$OUTPUT_DIR"/*.wic)
 shopt -u nullglob
 
 if [[ ${#wic_files[@]} -eq 0 ]]; then
-  die "Không tìm thấy file .wic trong $OUTPUT_DIR. Hãy chạy ./build_rpi_image.sh trước."
+  die "Cannot find .wic file in $OUTPUT_DIR. Please run ./build_rpi_image.sh first."
 fi
 
 wic_file="$(ls -t "${wic_files[@]}" | head -n 1)"
 
-printf 'Image sẽ flash:\n  %s\n\n' "$wic_file"
-printf 'Block devices hiện có:\n'
+printf 'Image will be flashed:\n  %s\n\n' "$wic_file"
+printf 'Block devices currently available:\n'
 lsblk -o NAME,TYPE,SIZE,MODEL,TRAN,MOUNTPOINTS
 printf '\n'
 
-read -r -p "Nhập SD device để flash [default: $DEFAULT_DEVICE]: " device
+read -r -p "Enter SD device to flash [default: $DEFAULT_DEVICE]: " device
 device="${device:-$DEFAULT_DEVICE}"
 
-[[ -b "$device" ]] || die "Block device không hợp lệ: $device"
+[[ -b "$device" ]] || die "Invalid block device: $device"
 
 device_type="$(lsblk -dno TYPE "$device" 2>/dev/null || true)"
 [[ "$device_type" == "disk" ]] || die "$device không phải whole-disk device. Hãy chọn dạng /dev/sdX hoặc /dev/mmcblkX, không chọn partition."
 
 root_disk="$(root_disk_name)"
 if [[ -n "$root_disk" && "$(device_basename "$device")" == "$root_disk" ]]; then
-  die "$device có vẻ là ổ đang chạy hệ điều hành hiện tại. Dừng để tránh ghi nhầm."
+  die "$device appears to be the disk running the current operating system. Stopping to avoid accidental overwriting."
 fi
 
-printf '\nCẢNH BÁO: toàn bộ dữ liệu trên %s sẽ bị xóa.\n' "$device"
-read -r -p 'Gõ YES để tiếp tục: ' confirm
+printf '\nWARNING: All data on %s will be erased.\n' "$device"
+read -r -p 'Type YES to continue: ' confirm
 
 if [[ "$confirm" != "YES" ]]; then
-  die "Đã hủy."
+  die "Operation cancelled."
 fi
 
-printf 'Unmount partitions của %s...\n' "$device"
+printf 'Unmount partitions of %s...\n' "$device"
 umount "${device}"?* 2>/dev/null || true
 umount "${device}"p?* 2>/dev/null || true
 
@@ -77,4 +77,4 @@ printf 'Flash image...\n'
 dd if="$wic_file" of="$device" bs=4M status=progress conv=fsync
 sync
 
-printf '\nFlash xong. Có thể tháo SD card và boot Raspberry Pi.\n'
+printf '\nFlash done. You can now remove the SD card and boot Raspberry Pi.\n'

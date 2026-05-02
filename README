@@ -64,7 +64,7 @@ Mặc định script build image riêng của project:
 
 ```bash
 IMAGE_NAME=myproject-rpi-image
-MACHINE=raspberrypi3
+MACHINE=myproject-rpi
 BUILD_DIR=~/yocto/build-rpi
 ```
 
@@ -77,13 +77,13 @@ meta-myproject_rpi/output/
 Kết quả chính là file `.wic`, ví dụ:
 
 ```text
-output/myproject-rpi-image-raspberrypi3-*.rootfs.wic
+output/myproject-rpi-image-myproject-rpi-*.rootfs.wic
 ```
 
 Có thể đổi image hoặc machine khi chạy:
 
 ```bash
-IMAGE_NAME=core-image-base MACHINE=raspberrypi3 ./build_rpi_image.sh
+IMAGE_NAME=core-image-base MACHINE=myproject-rpi ./build_rpi_image.sh
 ```
 
 ## 3. Flash image ra SD card
@@ -133,7 +133,7 @@ Project này hỗ trợ quản lý cấu hình Yocto theo source code thay vì p
 Các cấu hình quan trọng hiện nằm trong `conf/build/local.conf.append`:
 
 ```conf
-MACHINE = "raspberrypi3"
+MACHINE = "myproject-rpi"
 DISTRO ?= "poky"
 PACKAGE_CLASSES ?= "package_rpm"
 DL_DIR ?= "${TOPDIR}/../downloads"
@@ -151,6 +151,6 @@ Nhờ vậy, khi clone project sang máy khác, chỉ cần chạy `./setup-yoct
 ## Ghi chú
 
 - Không commit `build-rpi/`, `downloads/`, `sstate-cache/` hoặc `output/`.
-- Nếu muốn đổi board Raspberry Pi, sửa `MACHINE` trong `conf/build/local.conf.append`.
+- Nếu muốn đổi board Raspberry Pi, sửa `MACHINE` trong `conf/build/local.conf.append` hoặc truyền `MACHINE=...` khi gọi script build.
 - Nếu muốn thêm layer mới, thêm vào `conf/build/bblayers.conf.in`.
 - Nếu muốn thêm package vào image, sửa `recipes-core/images/myproject-rpi-image.bb`.

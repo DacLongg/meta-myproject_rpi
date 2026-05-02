@@ -20,11 +20,11 @@ info() { printf '[INFO] %s\n' "$*"; }
 die() { printf '[ERROR] %s\n' "$*" >&2; exit 1; }
 
 if [[ "$(basename "$PROJECT_DIR")" != "$PROJECT_NAME" ]]; then
-  die "Script phải nằm trong thư mục project $PROJECT_NAME, hiện tại là $PROJECT_DIR"
+  die "Script must be located in the project directory $PROJECT_NAME, currently in $PROJECT_DIR"
 fi
 
 if [[ ! -d "$BUILD_DIR/conf" ]]; then
-  die "Chưa có build environment: $BUILD_DIR. Hãy chạy ./setup-yocto-build.sh trước."
+  die "Cannot find build environment: $BUILD_DIR. Please run ./setup-yocto-build.sh first."
 fi
 
 info "Áp dụng cấu hình project vào build dir"
@@ -43,14 +43,14 @@ elif [[ -f "$INIT_SCRIPT" ]]; then
   source "$INIT_SCRIPT" "$BUILD_DIR" >/dev/null
   set -u
 else
-  die "Không tìm thấy Yocto env script. Hãy chạy ./setup-yocto-build.sh trước."
+  die "Cannot find Yocto env script. Please run ./setup-yocto-build.sh first."
 fi
 
-info "Build image: $IMAGE_NAME cho $MACHINE"
+info "Build image: $IMAGE_NAME for $MACHINE"
 cd "$BUILD_DIR"
 bitbake "$IMAGE_NAME"
 
-info "Tìm image mới nhất trong $DEPLOY_DIR"
+info "Find latest image in $DEPLOY_DIR"
 shopt -s nullglob
 images=("$DEPLOY_DIR"/"$IMAGE_NAME"-"$MACHINE"-*.rootfs.wic.bz2)
 if [[ ${#images[@]} -eq 0 ]]; then
@@ -59,7 +59,7 @@ fi
 shopt -u nullglob
 
 if [[ ${#images[@]} -eq 0 ]]; then
-  die "Không tìm thấy file .wic.bz2 trong $DEPLOY_DIR"
+  die "Cannot find .wic.bz2 file in $DEPLOY_DIR"
 fi
 
 latest_image="$(ls -t "${images[@]}" | head -n 1)"

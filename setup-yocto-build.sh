@@ -50,7 +50,7 @@ install_dependencies() {
       xz-utils debianutils iputils-ping libsdl1.2-dev xterm zstd liblz4-tool
       file locales bc
     )
-    info "Cài/cập nhật package build Yocto bằng apt"
+    info "Update package build Yocto by apt"
     run_with_sudo apt-get update
     run_with_sudo apt-get install -y "${apt_packages[@]}"
   elif command_exists dnf; then
@@ -60,7 +60,7 @@ install_dependencies() {
       perl-Text-ParseWords perl-Thread-Queue perl-bignum socat python3-pexpect
       findutils which file cpio python3-pip xz zstd lz4 bc
     )
-    info "Cài/cập nhật package build Yocto bằng dnf"
+    info "Update package build Yocto by dnf"
     run_with_sudo dnf install -y "${dnf_packages[@]}"
   elif command_exists zypper; then
     local zypper_packages=(
@@ -68,18 +68,18 @@ install_dependencies() {
       python3-curses patch socat python3-pexpect xz which tar gzip bzip2 unzip
       cpio file zstd lz4 bc
     )
-    info "Cài/cập nhật package build Yocto bằng zypper"
+    info "Update package build Yocto by zypper"
     run_with_sudo zypper install -y "${zypper_packages[@]}"
   elif command_exists pacman; then
     local pacman_packages=(
       base-devel git diffstat unzip texinfo chrpath socat cpio python python-pip
       python-pexpect wget xz zstd lz4 file bc
     )
-    info "Cài/cập nhật package build Yocto bằng pacman"
+    info "Update package build Yocto by pacman"
     run_with_sudo pacman -Sy --needed --noconfirm "${pacman_packages[@]}"
   else
-    warn "Không nhận diện được package manager."
-    warn "Hãy cài thủ công dependencies Yocto: git, gcc/g++, make, python3, gawk, wget, diffstat, unzip, texinfo, chrpath, socat, cpio, xz, zstd, lz4, file, bc."
+    warn "No detected package manager."
+    warn "Please install Yocto dependencies manually: git, gcc/g++, make, python3, gawk, wget, diffstat, unzip, texinfo, chrpath, socat, cpio, xz, zstd, lz4, file, bc."
   fi
 }
 
@@ -89,7 +89,7 @@ check_dependencies() {
   )
   local missing=()
 
-  info "Kiểm tra dependencies build Yocto"
+  info "Checking Yocto build dependencies"
   for tool in "${tools[@]}"; do
     if ! command_exists "$tool"; then
       missing+=("$tool")
@@ -97,10 +97,10 @@ check_dependencies() {
   done
 
   if [[ ${#missing[@]} -gt 0 ]]; then
-    warn "Thiếu công cụ: ${missing[*]}"
+    warn "Missing tools: ${missing[*]}"
     install_dependencies
   else
-    info "Các công cụ build cơ bản đã có"
+    info "Basic build tools are available"
   fi
 }
 
@@ -111,21 +111,21 @@ ensure_project_path() {
   mkdir -p "$YOCTO_ROOT"
 
   if [[ "$current_dir" == "$PROJECT_DIR" ]]; then
-    info "Dự án đang ở đúng vị trí: $PROJECT_DIR"
+    info "Project is already in the correct location: $PROJECT_DIR"
     return
   fi
 
   if [[ "$(basename "$current_dir")" != "$PROJECT_NAME" ]]; then
-    die "Tên thư mục dự án phải là $PROJECT_NAME, hiện tại là $(basename "$current_dir")."
+    die "Project directory name must be $PROJECT_NAME, currently is $(basename "$current_dir")."
   fi
 
   if [[ -e "$PROJECT_DIR" ]]; then
-    die "Đích $PROJECT_DIR đã tồn tại. Hãy chạy script từ đúng thư mục đó hoặc xử lý thư mục trùng trước."
+    die "Destination $PROJECT_DIR already exists. Please run the script from the correct directory or handle the existing directory first."
   fi
 
-  info "Dự án chưa nằm trong $YOCTO_ROOT, move vào $PROJECT_DIR"
+  info "Project is not in $YOCTO_ROOT, moving to $PROJECT_DIR"
   mv "$current_dir" "$PROJECT_DIR"
-  info "Đã move dự án. Chạy lại script bằng lệnh:"
+  info "Project moved. Run the script again with:"
   printf '  %s/setup-yocto-build.sh\n' "$PROJECT_DIR"
   exit 0
 }
@@ -136,25 +136,25 @@ ensure_repo() {
   local branch="$3"
 
   if [[ -d "$dest/.git" ]]; then
-    info "$(basename "$dest") đã tồn tại, kiểm tra nhánh"
-    git -C "$dest" fetch --quiet origin "$branch" || warn "Không fetch được $dest. Tiếp tục với checkout hiện tại."
+    info "$(basename "$dest") already exists, checking branch"
+    git -C "$dest" fetch --quiet origin "$branch" || warn "Cannot fetch $dest. Continuing with current checkout."
     if git -C "$dest" rev-parse --verify --quiet "$branch" >/dev/null; then
       git -C "$dest" checkout --quiet "$branch"
     elif git -C "$dest" rev-parse --verify --quiet "origin/$branch" >/dev/null; then
       git -C "$dest" checkout --quiet -B "$branch" "origin/$branch"
     else
-      warn "$dest không có nhánh $branch. Bỏ qua checkout."
+      warn "$dest does not have branch $branch. Skipping checkout."
     fi
   elif [[ -e "$dest" ]]; then
-    die "$dest đã tồn tại nhưng không phải git repo."
+    die "$dest already exists but is not a git repo."
   else
-    info "Clone $(basename "$dest") nhánh $branch"
+    info "Clone $(basename "$dest") branch $branch"
     git clone --branch "$branch" --single-branch "$url" "$dest"
   fi
 }
 
 ensure_yocto_sources() {
-  info "Kiểm tra Yocto sources trong $YOCTO_ROOT"
+  info "Checking Yocto sources in $YOCTO_ROOT"
   ensure_repo "$POKY_URL" "$YOCTO_ROOT/poky" "$POKY_BRANCH"
   ensure_repo "$META_RPI_URL" "$YOCTO_ROOT/meta-raspberrypi" "$META_BRANCH"
   ensure_repo "$META_OPENEMBEDDED_URL" "$YOCTO_ROOT/meta-openembedded" "$META_BRANCH"
@@ -162,9 +162,9 @@ ensure_yocto_sources() {
 
 create_build_env() {
   local init="$YOCTO_ROOT/poky/oe-init-build-env"
-  [[ -f "$init" ]] || die "Không tìm thấy $init"
+  [[ -f "$init" ]] || die "Cannot find $init"
 
-  info "Tạo/kiểm tra build environment: $BUILD_DIR"
+  info "Creating/checking build environment: $BUILD_DIR"
   # oe-init-build-env from kirkstone reads a few optional variables that may be
   # unset, so do not source it while nounset is active.
   set +u
@@ -172,7 +172,7 @@ create_build_env() {
   source "$init" "$BUILD_DIR" >/dev/null
   set -u
 
-  info "Tạo helper source env: $YOCTO_ROOT/setup-yocto-env.sh"
+  info "Creating helper source env: $YOCTO_ROOT/setup-yocto-env.sh"
   cat >"$YOCTO_ROOT/setup-yocto-env.sh" <<EOF
 #!/usr/bin/env bash
 set -e
@@ -193,13 +193,13 @@ add_layer_if_missing() {
   local layer="$1"
   local bblayers="$BUILD_DIR/conf/bblayers.conf"
 
-  [[ -f "$bblayers" ]] || die "Không tìm thấy $bblayers"
-  [[ -d "$layer" ]] || die "Không tìm thấy layer $layer"
+  [[ -f "$bblayers" ]] || die "Cannot find $bblayers"
+  [[ -d "$layer" ]] || die "Cannot find layer $layer"
 
   if grep -Fq "$layer" "$bblayers"; then
-    info "Layer đã có trong bblayers.conf: $layer"
+    info "Layer is already in bblayers.conf: $layer"
   else
-    info "Thêm layer: $layer"
+    info "Adding layer: $layer"
     bitbake-layers add-layer "$layer"
   fi
 }
@@ -208,10 +208,10 @@ configure_layers() {
   local template="$PROJECT_BUILD_CONF_DIR/bblayers.conf.in"
   local bblayers="$BUILD_DIR/conf/bblayers.conf"
 
-  [[ -f "$template" ]] || die "Không tìm thấy template $template"
-  [[ -f "$bblayers" ]] || die "Không tìm thấy $bblayers"
+  [[ -f "$template" ]] || die "Cannot find template $template"
+  [[ -f "$bblayers" ]] || die "Cannot find $bblayers"
 
-  info "Render bblayers.conf từ template của project"
+  info "Render bblayers.conf from project template"
   sed \
     -e "s|@YOCTO_ROOT@|$YOCTO_ROOT|g" \
     -e "s|@PROJECT_NAME@|$PROJECT_NAME|g" \
@@ -223,10 +223,10 @@ configure_local_conf() {
   local local_conf="$BUILD_DIR/conf/local.conf"
   local tmp_conf
 
-  [[ -f "$template" ]] || die "Không tìm thấy template $template"
-  [[ -f "$local_conf" ]] || die "Không tìm thấy $local_conf"
+  [[ -f "$template" ]] || die "Cannot find template $template"
+  [[ -f "$local_conf" ]] || die "Cannot find $local_conf"
 
-  info "Áp dụng block cấu hình project vào local.conf"
+  info "Applying project configuration block to local.conf"
   tmp_conf="$(mktemp)"
   awk '
     $0 == "# BEGIN meta-myproject_rpi project config" { skip = 1; next }
@@ -255,9 +255,9 @@ main() {
   create_build_env
   apply_project_config
 
-  info "Hoàn tất setup."
-  printf 'Dùng môi trường build bằng lệnh:\n  source %s/setup-yocto-env.sh\n' "$YOCTO_ROOT"
-  printf 'Build thử image bằng lệnh:\n  bitbake core-image-minimal\n'
+  info "Setup completed."
+  printf 'Use the build environment with:\n  source %s/setup-yocto-env.sh\n' "$YOCTO_ROOT"
+  printf 'Build a test image with:\n  bitbake core-image-minimal\n'
 }
 
 main "$@"
