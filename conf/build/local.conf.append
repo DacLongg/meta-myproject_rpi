@@ -1,6 +1,6 @@
 # Project configuration for meta-myproject_rpi.
-MACHINE = "raspberrypi3"
-DISTRO ?= "poky"
+MACHINE = "darkdragon-rpi3"
+DISTRO ?= "darkdragon"
 PACKAGE_CLASSES ?= "package_rpm"
 
 DL_DIR ?= "${TOPDIR}/../downloads"
@@ -9,7 +9,7 @@ SSTATE_DIR ?= "${TOPDIR}/../sstate-cache"
 EXTRA_IMAGE_FEATURES ?= "debug-tweaks"
 EXTRA_IMAGE_FEATURES += "ssh-server-openssh"
 
-DISTRO_FEATURES:append = " systemd"
+DISTRO_FEATURES:append = " systemd wifi"
 VIRTUAL-RUNTIME_init_manager = "systemd"
 VIRTUAL-RUNTIME_initscripts = ""
 

@@ -4,7 +4,7 @@ IFS=$'\n\t'
 
 PROJECT_NAME="meta-myproject_rpi"
 IMAGE_NAME="${IMAGE_NAME:-myproject-rpi-image}"
-MACHINE="${MACHINE:-raspberrypi3}"
+MACHINE="${MACHINE:-darkdragon-rpi3}"
 YOCTO_ROOT="${YOCTO_ROOT:-$HOME/yocto}"
 BUILD_DIR_NAME="${BUILD_DIR_NAME:-build-rpi}"
 
@@ -14,6 +14,7 @@ ENV_SCRIPT="$YOCTO_ROOT/setup-yocto-env.sh"
 INIT_SCRIPT="$YOCTO_ROOT/poky/oe-init-build-env"
 DEPLOY_DIR="$BUILD_DIR/tmp/deploy/images/$MACHINE"
 OUTPUT_DIR="$PROJECT_DIR/output"
+APPLY_CONFIG_SCRIPT="$PROJECT_DIR/apply_project_config.sh"
 
 info() { printf '[INFO] %s\n' "$*"; }
 die() { printf '[ERROR] %s\n' "$*" >&2; exit 1; }
@@ -25,6 +26,9 @@ fi
 if [[ ! -d "$BUILD_DIR/conf" ]]; then
   die "Chưa có build environment: $BUILD_DIR. Hãy chạy ./setup-yocto-build.sh trước."
 fi
+
+info "Áp dụng cấu hình project vào build dir"
+"$APPLY_CONFIG_SCRIPT"
 
 if [[ -f "$ENV_SCRIPT" ]]; then
   info "Source Yocto env: $ENV_SCRIPT"

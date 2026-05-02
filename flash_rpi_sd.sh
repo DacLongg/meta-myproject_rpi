@@ -54,7 +54,7 @@ device="${device:-$DEFAULT_DEVICE}"
 
 [[ -b "$device" ]] || die "Block device không hợp lệ: $device"
 
-device_type="$(lsblk -no TYPE "$device" 2>/dev/null || true)"
+device_type="$(lsblk -dno TYPE "$device" 2>/dev/null || true)"
 [[ "$device_type" == "disk" ]] || die "$device không phải whole-disk device. Hãy chọn dạng /dev/sdX hoặc /dev/mmcblkX, không chọn partition."
 
 root_disk="$(root_disk_name)"

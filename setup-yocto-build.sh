@@ -241,13 +241,19 @@ configure_local_conf() {
   mv "$tmp_conf" "$local_conf"
 }
 
+apply_project_config() {
+  local script="$PROJECT_DIR/apply_project_config.sh"
+
+  [[ -x "$script" ]] || die "Không tìm thấy hoặc chưa có quyền chạy: $script"
+  "$script"
+}
+
 main() {
   ensure_project_path
   check_dependencies
   ensure_yocto_sources
   create_build_env
-  configure_layers
-  configure_local_conf
+  apply_project_config
 
   info "Hoàn tất setup."
   printf 'Dùng môi trường build bằng lệnh:\n  source %s/setup-yocto-env.sh\n' "$YOCTO_ROOT"

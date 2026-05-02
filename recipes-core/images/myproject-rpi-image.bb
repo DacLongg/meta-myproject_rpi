@@ -9,5 +9,4 @@ IMAGE_FEATURES += "ssh-server-openssh debug-tweaks"
 CORE_IMAGE_EXTRA_INSTALL += " \
     hello \
     myproject-app \
-    kernel-modules \
 "

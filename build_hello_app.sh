@@ -13,6 +13,7 @@ ENV_SCRIPT="$YOCTO_ROOT/setup-yocto-env.sh"
 INIT_SCRIPT="$YOCTO_ROOT/poky/oe-init-build-env"
 PACKAGE_OUTPUT_DIR="$PROJECT_DIR/output/packages/$APP_NAME"
 BINARY_OUTPUT_DIR="$PROJECT_DIR/output/binaries/$APP_NAME"
+APPLY_CONFIG_SCRIPT="$PROJECT_DIR/apply_project_config.sh"
 
 info() { printf '[INFO] %s\n' "$*"; }
 die() { printf '[ERROR] %s\n' "$*" >&2; exit 1; }
@@ -24,6 +25,9 @@ fi
 if [[ ! -d "$BUILD_DIR/conf" ]]; then
   die "Chưa có build environment: $BUILD_DIR. Hãy chạy ./setup-yocto-build.sh trước."
 fi
+
+info "Áp dụng cấu hình project vào build dir"
+"$APPLY_CONFIG_SCRIPT"
 
 if [[ -f "$ENV_SCRIPT" ]]; then
   info "Source Yocto env: $ENV_SCRIPT"
