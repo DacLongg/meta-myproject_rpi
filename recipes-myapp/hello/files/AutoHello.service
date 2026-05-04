@@ -3,9 +3,8 @@ Description=AutoHello App
 After=network.target
 
 [Service]
+Type=oneshot
 ExecStart=/usr/bin/hello
-Restart=always
-RestartSec=2
 
 [Install]
 WantedBy=multi-user.target
