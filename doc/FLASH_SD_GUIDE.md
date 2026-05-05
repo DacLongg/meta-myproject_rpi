@@ -19,7 +19,7 @@ ls -lh output/*.wic
 Ví dụ output:
 
 ```text
-output/myproject-rpi-image-darkdragon-rpi3-20260426153512.rootfs.wic
+output/darkdragon-dev-image-darkdragon-rpi3-20260426153512.rootfs.wic
 ```
 
 ## 2. Cắm thẻ SD và xác định đúng device

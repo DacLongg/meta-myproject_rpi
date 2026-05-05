@@ -6,8 +6,13 @@ Wants=network-online.target
 [Service]
 Type=simple
 ExecStart=/usr/bin/myproject-app
+WorkingDirectory=/var/lib/myproject
 Restart=always
 RestartSec=5
+StateDirectory=myproject
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
 
 [Install]
 WantedBy=multi-user.target

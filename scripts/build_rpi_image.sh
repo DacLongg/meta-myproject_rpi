@@ -3,7 +3,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 PROJECT_NAME="meta-myproject_rpi"
-IMAGE_NAME="${IMAGE_NAME:-myproject-rpi-image}"
+IMAGE_NAME="${IMAGE_NAME:-darkdragon-dev-image}"
 MACHINE="${MACHINE:-darkdragon-rpi3}"
 YOCTO_ROOT="${YOCTO_ROOT:-$HOME/yocto}"
 BUILD_DIR_NAME="${BUILD_DIR_NAME:-build-rpi}"

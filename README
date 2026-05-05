@@ -59,7 +59,7 @@ Chạy:
 Mặc định script build image riêng của project:
 
 ```bash
-IMAGE_NAME=myproject-rpi-image
+IMAGE_NAME=darkdragon-dev-image
 MACHINE=darkdragon-rpi3
 BUILD_DIR=~/yocto/build-rpi
 ```
@@ -73,7 +73,7 @@ meta-myproject_rpi/output/
 Kết quả chính là file `.wic`, ví dụ:
 
 ```text
-output/myproject-rpi-image-darkdragon-rpi3-*.rootfs.wic
+output/darkdragon-dev-image-darkdragon-rpi3-*.rootfs.wic
 ```
 
 Có thể đổi image hoặc machine khi chạy:
@@ -121,7 +121,9 @@ Project này hỗ trợ quản lý cấu hình Yocto theo source code thay vì p
 - `scripts/setup-yocto-build.sh`: setup máy build từ gần như trạng thái sạch.
 - `scripts/build_rpi_image.sh`: build image từ project directory và đưa artifact về `output`.
 - `scripts/flash_rpi_sd.sh`: flash file `.wic` trong `output` ra SD card.
-- `recipes-core/images/myproject-rpi-image.bb`: image recipe chính của project.
+- `recipes-core/images/darkdragon-image.bb`: image nền cho sản phẩm.
+- `recipes-core/images/darkdragon-dev-image.bb`: image dev mặc định của project.
+- `recipes-core/packagegroups/`: gom package theo vai trò base/dev thay vì nhét trực tiếp vào image.
 - `recipes-myapp/hello/hello.bb`: recipe ứng dụng mẫu của project.
 
 Các cấu hình quan trọng hiện nằm trong `manifests/kas.yml`:
@@ -129,14 +131,8 @@ Các cấu hình quan trọng hiện nằm trong `manifests/kas.yml`:
 ```conf
 MACHINE = "darkdragon-rpi3"
 DISTRO ?= "darkdragon"
-PACKAGE_CLASSES ?= "package_rpm"
 DL_DIR ?= "${TOPDIR}/../downloads"
 SSTATE_DIR ?= "${TOPDIR}/../sstate-cache"
-EXTRA_IMAGE_FEATURES ?= "debug-tweaks"
-EXTRA_IMAGE_FEATURES += "ssh-server-openssh"
-DISTRO_FEATURES:append = " systemd wifi"
-VIRTUAL-RUNTIME_init_manager = "systemd"
-VIRTUAL-RUNTIME_initscripts = ""
 PATCHRESOLVE = "noop"
 ```
 
@@ -147,4 +143,6 @@ Nhờ vậy, khi clone project sang máy khác, chỉ cần chạy `./scripts/se
 - Không commit `build-rpi/`, `downloads/`, `sstate-cache/` hoặc `output/`.
 - Nếu muốn đổi board Raspberry Pi mặc định, sửa `machine` trong `manifests/kas.yml` hoặc truyền `MACHINE=...` khi gọi script build.
 - Nếu muốn thêm layer mới, thêm vào `manifests/kas.yml`.
-- Nếu muốn thêm package vào image, sửa `recipes-core/images/myproject-rpi-image.bb`.
+- Nếu muốn thêm package cho mọi image, sửa `recipes-core/packagegroups/packagegroup-darkdragon-base.bb`.
+- Nếu muốn thêm debug/test package, sửa `recipes-core/packagegroups/packagegroup-darkdragon-dev.bb`.
+- Nếu muốn đổi policy image, sửa `recipes-core/images/darkdragon-image.bb` hoặc `recipes-core/images/darkdragon-dev-image.bb`.

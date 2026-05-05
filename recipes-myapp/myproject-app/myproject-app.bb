@@ -14,6 +14,7 @@ inherit systemd
 
 SYSTEMD_SERVICE:${PN} = "myproject-app.service"
 SYSTEMD_AUTO_ENABLE:${PN} = "enable"
+RDEPENDS:${PN} += "bash"
 
 do_compile() {
     ${CC} ${CFLAGS} ${LDFLAGS} ${WORKDIR}/myproject-app.c -o myproject-app
@@ -23,6 +24,7 @@ do_install() {
     install -d ${D}${bindir}
     install -m 0755 myproject-app ${D}${bindir}/myproject-app
 
+    install -d ${D}${localstatedir}/lib/myproject
     install -d ${D}${systemd_system_unitdir}
     install -m 0644 ${WORKDIR}/myproject-app.service ${D}${systemd_system_unitdir}/myproject-app.service
 }

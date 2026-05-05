@@ -1,0 +1,4 @@
+DarkDragon OS
+
+This target is provisioned from the meta-myproject_rpi layer.
+Treat local changes as non-persistent unless they are represented in Yocto metadata.
