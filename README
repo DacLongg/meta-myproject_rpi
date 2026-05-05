@@ -1,6 +1,6 @@
 # meta-myproject_rpi
 
-Layer Yocto cho Raspberry Pi. Project này đi kèm các script để dựng môi trường Yocto `kirkstone`, cấu hình build, build image và flash image ra SD card.
+Layer Yocto cho Raspberry Pi. Project này dùng `kas` để dựng môi trường Yocto `kirkstone`, quản lý layer/config build, build image và flash image ra SD card.
 
 ## Cấu trúc mong muốn
 
@@ -10,7 +10,7 @@ Project nên nằm trong:
 ~/yocto/meta-myproject_rpi
 ```
 
-Nếu clone project ở nơi khác nhưng thư mục vẫn tên `meta-myproject_rpi`, script `setup-yocto-build.sh` sẽ tạo `~/yocto` và move project vào đúng vị trí.
+Nếu clone project ở nơi khác nhưng thư mục vẫn tên `meta-myproject_rpi`, script `scripts/setup-yocto-build.sh` sẽ tạo `~/yocto` và move project vào đúng vị trí.
 
 Sau khi setup, layout chính sẽ là:
 
@@ -30,26 +30,22 @@ Sau khi setup, layout chính sẽ là:
 Chạy trong thư mục project:
 
 ```bash
-./setup-yocto-build.sh
+./scripts/setup-yocto-build.sh
 ```
 
 Script sẽ:
 
 - Kiểm tra project có nằm đúng `~/yocto/meta-myproject_rpi` không.
 - Kiểm tra và cài các dependency cần cho Yocto nếu thiếu.
-- Clone các source/layer cần thiết:
-  - `poky`, branch `kirkstone`
-  - `meta-raspberrypi`, branch `kirkstone`
-  - `meta-openembedded`, branch `kirkstone`
+- Cài `kas` nếu máy chưa có.
+- Checkout các source/layer đã khai báo trong `manifests/kas.yml`.
 - Tạo build directory `~/yocto/build-rpi`.
-- Tạo helper env script `~/yocto/setup-yocto-env.sh`.
-- Render `build-rpi/conf/bblayers.conf` từ `conf/build/bblayers.conf.in`.
-- Apply cấu hình project vào `build-rpi/conf/local.conf` từ `conf/build/local.conf.append`.
+- Tạo helper script `~/yocto/setup-yocto-env.sh` để mở `kas shell`.
 
 Sau khi setup, có thể vào môi trường build bằng:
 
 ```bash
-source ~/yocto/setup-yocto-env.sh
+~/yocto/setup-yocto-env.sh
 ```
 
 ## 2. Build image Raspberry Pi
@@ -57,18 +53,18 @@ source ~/yocto/setup-yocto-env.sh
 Chạy:
 
 ```bash
-./build_rpi_image.sh
+./scripts/build_rpi_image.sh
 ```
 
 Mặc định script build image riêng của project:
 
 ```bash
 IMAGE_NAME=myproject-rpi-image
-MACHINE=myproject-rpi
+MACHINE=darkdragon-rpi3
 BUILD_DIR=~/yocto/build-rpi
 ```
 
-Script sẽ tự source Yocto environment, chuyển sang `~/yocto/build-rpi`, chạy `bitbake`, sau đó copy image về:
+Script sẽ gọi `kas build`, sau đó copy image về:
 
 ```bash
 meta-myproject_rpi/output/
@@ -77,13 +73,13 @@ meta-myproject_rpi/output/
 Kết quả chính là file `.wic`, ví dụ:
 
 ```text
-output/myproject-rpi-image-myproject-rpi-*.rootfs.wic
+output/myproject-rpi-image-darkdragon-rpi3-*.rootfs.wic
 ```
 
 Có thể đổi image hoặc machine khi chạy:
 
 ```bash
-IMAGE_NAME=core-image-base MACHINE=myproject-rpi ./build_rpi_image.sh
+IMAGE_NAME=core-image-base MACHINE=darkdragon-rpi3 ./scripts/build_rpi_image.sh
 ```
 
 ## 3. Flash image ra SD card
@@ -97,7 +93,7 @@ lsblk
 Flash image mới nhất trong thư mục `output`:
 
 ```bash
-sudo ./flash_rpi_sd.sh
+sudo ./scripts/flash_rpi_sd.sh
 ```
 
 Script sẽ:
@@ -111,46 +107,44 @@ Script sẽ:
 Có thể đổi device mặc định:
 
 ```bash
-sudo DEFAULT_DEVICE=/dev/sdb ./flash_rpi_sd.sh
+sudo DEFAULT_DEVICE=/dev/sdb ./scripts/flash_rpi_sd.sh
 ```
 
-Hướng dẫn chi tiết và các lưu ý an toàn khi flash nằm trong `FLASH_SD_GUIDE.md`.
+Hướng dẫn chi tiết và các lưu ý an toàn khi flash nằm trong `doc/FLASH_SD_GUIDE.md`.
 
 ## Project Này Hỗ Trợ Gì
 
 Project này hỗ trợ quản lý cấu hình Yocto theo source code thay vì phụ thuộc vào state cục bộ trong thư mục build.
 
 - `conf/layer.conf`: khai báo layer `meta-myproject_rpi` cho Yocto.
-- `conf/build/bblayers.conf.in`: template danh sách layer cần dùng cho build.
-- `conf/build/local.conf.append`: cấu hình project được apply vào `build-rpi/conf/local.conf`.
-- `setup-yocto-build.sh`: setup máy build từ gần như trạng thái sạch.
-- `build_rpi_image.sh`: build image từ project directory và đưa artifact về `output`.
-- `flash_rpi_sd.sh`: flash file `.wic` trong `output` ra SD card.
+- `manifests/kas.yml`: manifest `kas` khai báo source, layer, machine, distro và local build config.
+- `scripts/setup-yocto-build.sh`: setup máy build từ gần như trạng thái sạch.
+- `scripts/build_rpi_image.sh`: build image từ project directory và đưa artifact về `output`.
+- `scripts/flash_rpi_sd.sh`: flash file `.wic` trong `output` ra SD card.
 - `recipes-core/images/myproject-rpi-image.bb`: image recipe chính của project.
-- `recipes-example/`: recipe ví dụ từ Yocto layer template.
 - `recipes-myapp/hello/hello.bb`: recipe ứng dụng mẫu của project.
 
-Các cấu hình quan trọng hiện nằm trong `conf/build/local.conf.append`:
+Các cấu hình quan trọng hiện nằm trong `manifests/kas.yml`:
 
 ```conf
-MACHINE = "myproject-rpi"
-DISTRO ?= "poky"
+MACHINE = "darkdragon-rpi3"
+DISTRO ?= "darkdragon"
 PACKAGE_CLASSES ?= "package_rpm"
 DL_DIR ?= "${TOPDIR}/../downloads"
 SSTATE_DIR ?= "${TOPDIR}/../sstate-cache"
 EXTRA_IMAGE_FEATURES ?= "debug-tweaks"
 EXTRA_IMAGE_FEATURES += "ssh-server-openssh"
-DISTRO_FEATURES:append = " systemd"
+DISTRO_FEATURES:append = " systemd wifi"
 VIRTUAL-RUNTIME_init_manager = "systemd"
 VIRTUAL-RUNTIME_initscripts = ""
 PATCHRESOLVE = "noop"
 ```
 
-Nhờ vậy, khi clone project sang máy khác, chỉ cần chạy `./setup-yocto-build.sh` là build directory sẽ nhận đúng cấu hình của project.
+Nhờ vậy, khi clone project sang máy khác, chỉ cần chạy `./scripts/setup-yocto-build.sh` là `kas` sẽ checkout source và tái tạo build directory với cùng cấu hình.
 
 ## Ghi chú
 
 - Không commit `build-rpi/`, `downloads/`, `sstate-cache/` hoặc `output/`.
-- Nếu muốn đổi board Raspberry Pi, sửa `MACHINE` trong `conf/build/local.conf.append` hoặc truyền `MACHINE=...` khi gọi script build.
-- Nếu muốn thêm layer mới, thêm vào `conf/build/bblayers.conf.in`.
+- Nếu muốn đổi board Raspberry Pi mặc định, sửa `machine` trong `manifests/kas.yml` hoặc truyền `MACHINE=...` khi gọi script build.
+- Nếu muốn thêm layer mới, thêm vào `manifests/kas.yml`.
 - Nếu muốn thêm package vào image, sửa `recipes-core/images/myproject-rpi-image.bb`.

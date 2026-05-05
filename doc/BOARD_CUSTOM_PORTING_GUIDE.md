@@ -141,9 +141,9 @@ Trong repo hiện tại đã có distro riêng:
 
 - [conf/distro/darkdragon.conf](/home/ddragon/yocto/meta-myproject_rpi/conf/distro/darkdragon.conf:1)
 
-và build config đang dùng:
+và build config hiện được quản lý bằng manifest:
 
-- [conf/build/local.conf.append](/home/ddragon/yocto/meta-myproject_rpi/conf/build/local.conf.append:3)
+- [manifests/kas.yml](/home/ddragon/yocto/meta-myproject_rpi/manifests/kas.yml:1)
 
 Điều này không sai. Nó chỉ có nghĩa là repo đang chứa cả:
 

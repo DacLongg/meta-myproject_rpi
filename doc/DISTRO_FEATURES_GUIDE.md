@@ -52,7 +52,7 @@ Vì vậy:
 Xem giá trị cuối cùng mà BitBake đang dùng:
 
 ```bash
-source ~/yocto/setup-yocto-env.sh
+~/yocto/setup-yocto-env.sh
 bitbake -e myproject-rpi-image | rg '^DISTRO_FEATURES='
 ```
 

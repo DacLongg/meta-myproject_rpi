@@ -7,7 +7,7 @@ File `flash_rpi_sd.sh` dùng để ghi image `.wic` đã build ra thẻ SD cho R
 Trước khi flash, cần có file `.wic` trong thư mục `output` của project:
 
 ```bash
-./build_rpi_image.sh
+./scripts/build_rpi_image.sh
 ```
 
 Sau khi build xong, kiểm tra:
@@ -19,7 +19,7 @@ ls -lh output/*.wic
 Ví dụ output:
 
 ```text
-output/myproject-rpi-image-myproject-rpi-20260426153512.rootfs.wic
+output/myproject-rpi-image-darkdragon-rpi3-20260426153512.rootfs.wic
 ```
 
 ## 2. Cắm thẻ SD và xác định đúng device
@@ -56,7 +56,7 @@ Chú ý chọn **whole disk**, không chọn partition:
 Chạy từ thư mục project:
 
 ```bash
-sudo ./flash_rpi_sd.sh
+sudo ./scripts/flash_rpi_sd.sh
 ```
 
 Script sẽ:
@@ -72,7 +72,7 @@ Script sẽ:
 Nếu muốn đổi device mặc định:
 
 ```bash
-sudo DEFAULT_DEVICE=/dev/sdb ./flash_rpi_sd.sh
+sudo DEFAULT_DEVICE=/dev/sdb ./scripts/flash_rpi_sd.sh
 ```
 
 ## 4. Những điểm cần chú ý

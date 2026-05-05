@@ -2,7 +2,8 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-PROJECT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+PROJECT_DIR="$(cd -P "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_DIR/output}"
 DEFAULT_DEVICE="${DEFAULT_DEVICE:-/dev/sda}"
 
@@ -27,11 +28,11 @@ root_disk_name() {
 }
 
 if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
-  die "Must be root: sudo ./flash_rpi_sd.sh"
+  die "Must be root: sudo ./scripts/flash_rpi_sd.sh"
 fi
 
 if [[ ! -d "$OUTPUT_DIR" ]]; then
-  die "Cannot find output directory: $OUTPUT_DIR. Please run ./build_rpi_image.sh first."
+  die "Cannot find output directory: $OUTPUT_DIR. Please run ./scripts/build_rpi_image.sh first."
 fi
 
 shopt -s nullglob
@@ -39,7 +40,7 @@ wic_files=("$OUTPUT_DIR"/*.wic)
 shopt -u nullglob
 
 if [[ ${#wic_files[@]} -eq 0 ]]; then
-  die "Cannot find .wic file in $OUTPUT_DIR. Please run ./build_rpi_image.sh first."
+  die "Cannot find .wic file in $OUTPUT_DIR. Please run ./scripts/build_rpi_image.sh first."
 fi
 
 wic_file="$(ls -t "${wic_files[@]}" | head -n 1)"

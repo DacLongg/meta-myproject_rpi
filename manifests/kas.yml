@@ -1,0 +1,57 @@
+header:
+  version: 11
+
+machine: darkdragon-rpi3
+distro: darkdragon
+target:
+  - myproject-rpi-image
+
+repos:
+  poky:
+    url: https://git.yoctoproject.org/git/poky
+    branch: kirkstone
+    layers:
+      meta:
+      meta-poky:
+      meta-yocto-bsp:
+
+  meta-openembedded:
+    url: https://git.openembedded.org/meta-openembedded
+    branch: kirkstone
+    layers:
+      meta-oe:
+      meta-python:
+      meta-networking:
+
+  meta-raspberrypi:
+    url: https://github.com/agherzan/meta-raspberrypi.git
+    branch: kirkstone
+    layers:
+      .:
+
+  meta-myproject_rpi:
+    path: meta-myproject_rpi
+    layers:
+      .:
+
+local_conf_header:
+  meta-myproject_rpi: |
+    PACKAGE_CLASSES ?= "package_rpm"
+
+    DL_DIR ?= "${TOPDIR}/../downloads"
+    SSTATE_DIR ?= "${TOPDIR}/../sstate-cache"
+
+    EXTRA_IMAGE_FEATURES ?= "debug-tweaks"
+    EXTRA_IMAGE_FEATURES += "ssh-server-openssh"
+
+    DISTRO_FEATURES:append = " systemd wifi"
+    VIRTUAL-RUNTIME_init_manager = "systemd"
+    VIRTUAL-RUNTIME_initscripts = ""
+
+    PATCHRESOLVE = "noop"
+
+    BB_NUMBER_THREADS = "3"
+    PARALLEL_MAKE = "-j 3"
+    PARALLEL_MAKEINST = "-j 3"
+
+    FETCHCMD_wget = "/usr/bin/env wget --no-check-certificate -t 2 -T 100"

@@ -5,16 +5,15 @@ IFS=$'\n\t'
 PROJECT_NAME="meta-myproject_rpi"
 YOCTO_ROOT="${YOCTO_ROOT:-$HOME/yocto}"
 BUILD_DIR_NAME="${BUILD_DIR_NAME:-build-rpi}"
-POKY_BRANCH="${POKY_BRANCH:-kirkstone}"
-META_BRANCH="${META_BRANCH:-$POKY_BRANCH}"
 
-POKY_URL="${POKY_URL:-https://git.yoctoproject.org/git/poky}"
-META_RPI_URL="${META_RPI_URL:-https://github.com/agherzan/meta-raspberrypi.git}"
-META_OPENEMBEDDED_URL="${META_OPENEMBEDDED_URL:-https://git.openembedded.org/meta-openembedded}"
-
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+SOURCE_PROJECT_DIR="$(cd -P "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
 PROJECT_DIR="$YOCTO_ROOT/$PROJECT_NAME"
 BUILD_DIR="$YOCTO_ROOT/$BUILD_DIR_NAME"
-PROJECT_BUILD_CONF_DIR="$PROJECT_DIR/conf/build"
+KAS_MANIFEST_REL="manifests/kas.yml"
+KAS_MANIFEST="$PROJECT_DIR/$KAS_MANIFEST_REL"
+KAS_BIN="${KAS_BIN:-kas}"
+KAS_VENV_DIR="${KAS_VENV_DIR:-$YOCTO_ROOT/.venvs/kas}"
 
 info() { printf '[INFO] %s\n' "$*"; }
 warn() { printf '[WARN] %s\n' "$*"; }
@@ -22,16 +21,6 @@ die() { printf '[ERROR] %s\n' "$*" >&2; exit 1; }
 
 command_exists() {
   command -v "$1" >/dev/null 2>&1
-}
-
-script_dir() {
-  local src
-  src="${BASH_SOURCE[0]}"
-  while [[ -L "$src" ]]; do
-    src="$(readlink "$src")"
-  done
-  cd -P "$(dirname "$src")" >/dev/null 2>&1
-  pwd
 }
 
 run_with_sudo() {
@@ -47,6 +36,7 @@ install_dependencies() {
     local apt_packages=(
       gawk wget git diffstat unzip texinfo gcc build-essential chrpath socat cpio
       python3 python3-pip python3-pexpect python3-git python3-jinja2 python3-subunit
+      python3-venv
       xz-utils debianutils iputils-ping libsdl1.2-dev xterm zstd liblz4-tool
       file locales bc
     )
@@ -58,14 +48,14 @@ install_dependencies() {
       gawk make wget tar bzip2 gzip python3 unzip perl patch diffutils diffstat
       git cpp gcc gcc-c++ glibc-devel texinfo chrpath ccache perl-Data-Dumper
       perl-Text-ParseWords perl-Thread-Queue perl-bignum socat python3-pexpect
-      findutils which file cpio python3-pip xz zstd lz4 bc
+      findutils which file cpio python3-pip python3-virtualenv xz zstd lz4 bc
     )
     info "Update package build Yocto by dnf"
     run_with_sudo dnf install -y "${dnf_packages[@]}"
   elif command_exists zypper; then
     local zypper_packages=(
       python3 gcc gcc-c++ git chrpath make wget python3-xml diffstat makeinfo
-      python3-curses patch socat python3-pexpect xz which tar gzip bzip2 unzip
+      python3-curses patch socat python3-pexpect python3-virtualenv xz which tar gzip bzip2 unzip
       cpio file zstd lz4 bc
     )
     info "Update package build Yocto by zypper"
@@ -104,19 +94,44 @@ check_dependencies() {
   fi
 }
 
-ensure_project_path() {
-  local current_dir
-  current_dir="$(script_dir)"
+install_kas() {
+  info "Installing kas into virtualenv: $KAS_VENV_DIR"
+  mkdir -p "$(dirname "$KAS_VENV_DIR")"
+  python3 -m venv "$KAS_VENV_DIR"
+  "$KAS_VENV_DIR/bin/pip" install --upgrade pip
+  "$KAS_VENV_DIR/bin/pip" install kas
+}
 
+ensure_kas() {
+  export PATH="$HOME/.local/bin:$PATH"
+
+  if [[ -x "$KAS_VENV_DIR/bin/kas" ]]; then
+    KAS_BIN="$KAS_VENV_DIR/bin/kas"
+  fi
+
+  if command_exists "$KAS_BIN"; then
+    info "kas is available: $(command -v "$KAS_BIN")"
+    return
+  fi
+
+  install_kas
+  KAS_BIN="$KAS_VENV_DIR/bin/kas"
+
+  if ! command_exists "$KAS_BIN"; then
+    die "kas installation did not provide '$KAS_BIN' in PATH"
+  fi
+}
+
+ensure_project_path() {
   mkdir -p "$YOCTO_ROOT"
 
-  if [[ "$current_dir" == "$PROJECT_DIR" ]]; then
+  if [[ "$SOURCE_PROJECT_DIR" == "$PROJECT_DIR" ]]; then
     info "Project is already in the correct location: $PROJECT_DIR"
     return
   fi
 
-  if [[ "$(basename "$current_dir")" != "$PROJECT_NAME" ]]; then
-    die "Project directory name must be $PROJECT_NAME, currently is $(basename "$current_dir")."
+  if [[ "$(basename "$SOURCE_PROJECT_DIR")" != "$PROJECT_NAME" ]]; then
+    die "Project directory name must be $PROJECT_NAME, currently is $(basename "$SOURCE_PROJECT_DIR")."
   fi
 
   if [[ -e "$PROJECT_DIR" ]]; then
@@ -124,140 +139,55 @@ ensure_project_path() {
   fi
 
   info "Project is not in $YOCTO_ROOT, moving to $PROJECT_DIR"
-  mv "$current_dir" "$PROJECT_DIR"
+  mv "$SOURCE_PROJECT_DIR" "$PROJECT_DIR"
   info "Project moved. Run the script again with:"
-  printf '  %s/setup-yocto-build.sh\n' "$PROJECT_DIR"
+  printf '  %s/scripts/setup-yocto-build.sh\n' "$PROJECT_DIR"
   exit 0
 }
 
-ensure_repo() {
-  local url="$1"
-  local dest="$2"
-  local branch="$3"
-
-  if [[ -d "$dest/.git" ]]; then
-    info "$(basename "$dest") already exists, checking branch"
-    git -C "$dest" fetch --quiet origin "$branch" || warn "Cannot fetch $dest. Continuing with current checkout."
-    if git -C "$dest" rev-parse --verify --quiet "$branch" >/dev/null; then
-      git -C "$dest" checkout --quiet "$branch"
-    elif git -C "$dest" rev-parse --verify --quiet "origin/$branch" >/dev/null; then
-      git -C "$dest" checkout --quiet -B "$branch" "origin/$branch"
-    else
-      warn "$dest does not have branch $branch. Skipping checkout."
-    fi
-  elif [[ -e "$dest" ]]; then
-    die "$dest already exists but is not a git repo."
-  else
-    info "Clone $(basename "$dest") branch $branch"
-    git clone --branch "$branch" --single-branch "$url" "$dest"
-  fi
+kas_in_project() {
+  (
+    cd "$PROJECT_DIR"
+    env KAS_WORK_DIR="$YOCTO_ROOT" KAS_BUILD_DIR="$BUILD_DIR" "$KAS_BIN" "$@"
+  )
 }
 
-ensure_yocto_sources() {
-  info "Checking Yocto sources in $YOCTO_ROOT"
-  ensure_repo "$POKY_URL" "$YOCTO_ROOT/poky" "$POKY_BRANCH"
-  ensure_repo "$META_RPI_URL" "$YOCTO_ROOT/meta-raspberrypi" "$META_BRANCH"
-  ensure_repo "$META_OPENEMBEDDED_URL" "$YOCTO_ROOT/meta-openembedded" "$META_BRANCH"
+checkout_sources() {
+  [[ -f "$KAS_MANIFEST" ]] || die "Cannot find kas manifest: $KAS_MANIFEST"
+
+  info "Checking out Yocto sources via kas"
+  kas_in_project checkout "$KAS_MANIFEST_REL"
 }
 
-create_build_env() {
-  local init="$YOCTO_ROOT/poky/oe-init-build-env"
-  [[ -f "$init" ]] || die "Cannot find $init"
+prime_build_dir() {
+  info "Creating/checking kas build directory: $BUILD_DIR"
+  kas_in_project shell "$KAS_MANIFEST_REL" -c "true"
+}
 
-  info "Creating/checking build environment: $BUILD_DIR"
-  # oe-init-build-env from kirkstone reads a few optional variables that may be
-  # unset, so do not source it while nounset is active.
-  set +u
-  # shellcheck disable=SC1090
-  source "$init" "$BUILD_DIR" >/dev/null
-  set -u
-
-  info "Creating helper source env: $YOCTO_ROOT/setup-yocto-env.sh"
+create_kas_shell_helper() {
+  info "Creating kas shell helper: $YOCTO_ROOT/setup-yocto-env.sh"
   cat >"$YOCTO_ROOT/setup-yocto-env.sh" <<EOF
 #!/usr/bin/env bash
-set -e
-nounset_was_enabled=0
-case \$- in
-  *u*) nounset_was_enabled=1; set +u ;;
-esac
-source "$YOCTO_ROOT/poky/oe-init-build-env" "$BUILD_DIR"
-if [[ "\$nounset_was_enabled" -eq 1 ]]; then
-  set -u
-fi
-unset nounset_was_enabled
+set -euo pipefail
+cd "$PROJECT_DIR"
+export PATH="\$HOME/.local/bin:\$PATH"
+exec env KAS_WORK_DIR="$YOCTO_ROOT" KAS_BUILD_DIR="$BUILD_DIR" "$KAS_BIN" shell "$KAS_MANIFEST_REL"
 EOF
   chmod +x "$YOCTO_ROOT/setup-yocto-env.sh"
-}
-
-add_layer_if_missing() {
-  local layer="$1"
-  local bblayers="$BUILD_DIR/conf/bblayers.conf"
-
-  [[ -f "$bblayers" ]] || die "Cannot find $bblayers"
-  [[ -d "$layer" ]] || die "Cannot find layer $layer"
-
-  if grep -Fq "$layer" "$bblayers"; then
-    info "Layer is already in bblayers.conf: $layer"
-  else
-    info "Adding layer: $layer"
-    bitbake-layers add-layer "$layer"
-  fi
-}
-
-configure_layers() {
-  local template="$PROJECT_BUILD_CONF_DIR/bblayers.conf.in"
-  local bblayers="$BUILD_DIR/conf/bblayers.conf"
-
-  [[ -f "$template" ]] || die "Cannot find template $template"
-  [[ -f "$bblayers" ]] || die "Cannot find $bblayers"
-
-  info "Render bblayers.conf from project template"
-  sed \
-    -e "s|@YOCTO_ROOT@|$YOCTO_ROOT|g" \
-    -e "s|@PROJECT_NAME@|$PROJECT_NAME|g" \
-    "$template" >"$bblayers"
-}
-
-configure_local_conf() {
-  local template="$PROJECT_BUILD_CONF_DIR/local.conf.append"
-  local local_conf="$BUILD_DIR/conf/local.conf"
-  local tmp_conf
-
-  [[ -f "$template" ]] || die "Cannot find template $template"
-  [[ -f "$local_conf" ]] || die "Cannot find $local_conf"
-
-  info "Applying project configuration block to local.conf"
-  tmp_conf="$(mktemp)"
-  awk '
-    $0 == "# BEGIN meta-myproject_rpi project config" { skip = 1; next }
-    $0 == "# END meta-myproject_rpi project config" { skip = 0; next }
-    skip != 1 { print }
-  ' "$local_conf" >"$tmp_conf"
-  {
-    printf '\n# BEGIN meta-myproject_rpi project config\n'
-    cat "$template"
-    printf '# END meta-myproject_rpi project config\n'
-  } >>"$tmp_conf"
-  mv "$tmp_conf" "$local_conf"
-}
-
-apply_project_config() {
-  local script="$PROJECT_DIR/apply_project_config.sh"
-
-  [[ -x "$script" ]] || die "Không tìm thấy hoặc chưa có quyền chạy: $script"
-  "$script"
 }
 
 main() {
   ensure_project_path
   check_dependencies
-  ensure_yocto_sources
-  create_build_env
-  apply_project_config
+  ensure_kas
+  checkout_sources
+  prime_build_dir
+  create_kas_shell_helper
 
   info "Setup completed."
-  printf 'Use the build environment with:\n  source %s/setup-yocto-env.sh\n' "$YOCTO_ROOT"
-  printf 'Build a test image with:\n  bitbake core-image-minimal\n'
+  printf 'Enter the kas shell with:\n  %s/setup-yocto-env.sh\n' "$YOCTO_ROOT"
+  printf 'Build the default image with:\n  cd %s && KAS_WORK_DIR=%s KAS_BUILD_DIR=%s %s build %s\n' \
+    "$PROJECT_DIR" "$YOCTO_ROOT" "$BUILD_DIR" "$KAS_BIN" "$KAS_MANIFEST_REL"
 }
 
 main "$@"
