@@ -1,0 +1,11 @@
+/*
+ * Project-owned family glue for BCM2709/2710 Raspberry Pi style boards.
+ *
+ * The project still reuses upstream SoC/platform primitives, but the include
+ * chain consumed by the board DTS is now local to this layer.
+ */
+#include "bcm2708-rpi.dtsi"
+
+&vchiq {
+	compatible = "brcm,bcm2836-vchiq", "brcm,bcm2835-vchiq";
+};
