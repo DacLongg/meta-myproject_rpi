@@ -42,7 +42,123 @@ Sai lầm phổ biến là trộn 3 lớp này vào một chỗ. Làm đúng th�
 - `board custom` lo phần phần cứng riêng
 - `image` lo phần hệ thống chạy trên board
 
-## 2. Bộ file tối thiểu cần chuẩn bị
+## 2. Có cần tạo `DISTRO` riêng không?
+
+Câu trả lời ngắn là:
+
+- `Không bắt buộc` nếu mục tiêu của bạn chỉ là porting một board custom để boot và chạy được Linux
+- `Nên có` nếu bạn muốn chuẩn hoá policy hệ thống cho một dòng sản phẩm, nhiều image, hoặc nhiều board
+
+Đây là chỗ rất hay bị nhầm giữa `MACHINE`, `DISTRO` và `IMAGE`.
+
+### 2.1. Phân biệt `MACHINE`, `DISTRO`, `IMAGE`
+
+`MACHINE` mô tả phần cứng:
+
+- board nào
+- SoC nào
+- boot chain nào
+- kernel/DTB nào
+- serial console nào
+- flash layout mặc định nào
+
+`DISTRO` mô tả policy hệ thống:
+
+- dùng `systemd` hay `sysvinit`
+- dùng `rpm`, `ipk` hay `deb`
+- bật các `DISTRO_FEATURES` nào
+- chọn provider mặc định nào
+- security policy, update policy, branding, package policy
+
+`IMAGE` mô tả root filesystem cụ thể:
+
+- package nào được cài
+- có SSH không
+- có debug tools không
+- có app/service nào
+
+Nếu chỉ đổi board mà policy hệ thống không đổi, thường bạn chỉ cần:
+
+- `MACHINE` mới
+- DTS/kernel/U-Boot/flash layout cho board
+- image để test boot
+
+Không cần `DISTRO` riêng chỉ để đổi board.
+
+### 2.2. Khi nào chưa cần `DISTRO` riêng
+
+Chưa cần tạo distro riêng khi:
+
+- bạn đang bring-up board đầu tiên
+- vẫn dùng được `poky` hoặc distro vendor hiện có
+- chỉ cần boot Linux, lên serial, mount rootfs, test peripheral
+- policy hệ thống chưa ổn định
+
+Trong giai đoạn này, thêm `DISTRO` riêng thường chỉ làm tăng số biến cần debug.
+
+Hướng thực dụng hơn là:
+
+1. port board bằng `MACHINE`
+2. build với `poky` hoặc distro vendor
+3. boot tới shell
+4. sau đó mới quyết định có cần distro riêng hay không
+
+### 2.3. Khi nào nên có `DISTRO` riêng
+
+Nên tạo `DISTRO` riêng khi bạn cần cố định các policy dùng chung cho dự án hoặc công ty:
+
+- luôn dùng `systemd`
+- luôn bật một bộ `DISTRO_FEATURES` cố định
+- chuẩn hoá package format
+- chọn provider riêng cho kernel, init, graphics, multimedia
+- có security policy riêng
+- có OTA/update policy riêng
+- có branding/versioning riêng
+- có nhiều board nhưng muốn cùng một nền distro
+
+Lúc đó `DISTRO` không còn là phần của board porting nữa, mà là phần của product platform.
+
+### 2.4. Quan hệ giữa board porting và distro
+
+Board porting đúng nghĩa thường tập trung vào:
+
+- `conf/machine/<board>.conf`
+- kernel
+- U-Boot
+- DTS
+- flash layout
+
+`DISTRO` là lớp phía trên, không bắt buộc để board boot được.
+
+Nói ngắn gọn:
+
+- port board để phần cứng chạy được
+- tạo distro để hệ thống phần mềm có policy nhất quán
+
+### 2.5. Áp vào repo hiện tại
+
+Trong repo hiện tại đã có distro riêng:
+
+- [conf/distro/darkdragon.conf](/home/ddragon/yocto/meta-myproject_rpi/conf/distro/darkdragon.conf:1)
+
+và build config đang dùng:
+
+- [conf/build/local.conf.append](/home/ddragon/yocto/meta-myproject_rpi/conf/build/local.conf.append:3)
+
+Điều này không sai. Nó chỉ có nghĩa là repo đang chứa cả:
+
+- phần `board support`
+- phần `distro policy`
+
+Nếu bạn muốn giữ repo gọn cho giai đoạn bring-up, vẫn có thể dùng:
+
+- `DISTRO = "poky"`
+
+và chỉ tập trung vào `MACHINE` + kernel + DTS + boot flow.
+
+Nếu bạn muốn xây một nền tảng sản phẩm ổn định lâu dài, giữ distro riêng là hợp lý.
+
+## 3. Bộ file tối thiểu cần chuẩn bị
 
 Với đa số dự án, bạn sẽ cần ít nhất các nhóm file sau:
 
@@ -67,7 +183,7 @@ wic/<layout>.wks
 
 Không phải dự án nào cũng cần tất cả. Nhưng đây là khung chuẩn để suy nghĩ.
 
-## 3. Phần `machine`
+## 4. Phần `machine`
 
 ### 3.1. Mục tiêu
 
@@ -150,7 +266,7 @@ thì thường chỉ cần:
 - DTS mới
 - một ít kernel/u-boot patch
 
-## 4. Phần `kernel`
+## 5. Phần `kernel`
 
 ### 4.1. Mục tiêu
 
@@ -227,7 +343,7 @@ Nếu vendor BSP đã làm tốt, nhiều trường hợp chỉ cần:
 - thermal
 - CAN/SPI/I2C/UART expansion
 
-## 5. Phần `u-boot`
+## 6. Phần `u-boot`
 
 ### 5.1. Khi nào cần quan tâm
 
@@ -272,7 +388,7 @@ recipes-bsp/u-boot/files/defconfig
 
 Nếu boot còn chưa qua được U-Boot prompt, chưa nên nhảy sang debug rootfs.
 
-## 6. Phần `device tree`
+## 7. Phần `device tree`
 
 ### 6.1. Mục tiêu
 
@@ -356,7 +472,7 @@ Không có những thứ này thì sửa DTS chỉ là mò:
 - sửa trong `tmp/work` thay vì đưa file vào layer
 - giữ nguyên node của reference board dù PCB custom không có phần cứng đó
 
-## 7. Phần `image`
+## 8. Phần `image`
 
 ### 7.1. Mục tiêu
 
@@ -416,7 +532,7 @@ Thường nên bật:
 - logging policy
 - package cleanup
 
-## 8. Phần `flash layout`
+## 9. Phần `flash layout`
 
 ### 8.1. Mục tiêu
 
@@ -483,7 +599,7 @@ data partition
 
 Nhiều lỗi boot không phải do kernel, mà do file được đặt sai partition hoặc sai tên trong boot partition.
 
-## 9. Phần firmware và binary blobs
+## 10. Phần firmware và binary blobs
 
 Tuy câu hỏi không tách riêng phần này, nhưng trên nhiều nền tảng đây là phần bắt buộc.
 
@@ -509,7 +625,7 @@ Nếu thiếu đúng blob, board có thể:
 - không lên Wi-Fi/BT
 - treo ở boot chain sớm
 
-## 10. Cấu trúc thư mục khuyến nghị trong layer
+## 11. Cấu trúc thư mục khuyến nghị trong layer
 
 Một cấu trúc dễ maintain:
 
@@ -543,7 +659,7 @@ wic/
   sdimage-myboard.wks
 ```
 
-## 11. Thứ tự làm việc thực tế
+## 12. Thứ tự làm việc thực tế
 
 Đây là thứ tự thực dụng nhất khi bring-up board mới:
 
@@ -559,7 +675,7 @@ wic/
 
 Nếu làm ngược, bạn sẽ mất thời gian debug rootfs trong khi boot chain còn sai.
 
-## 12. Checklist bring-up theo mức tối thiểu
+## 13. Checklist bring-up theo mức tối thiểu
 
 ### 12.1. Mốc 1: bootloader sống
 
@@ -596,7 +712,7 @@ Nếu làm ngược, bạn sẽ mất thời gian debug rootfs trong khi boot ch
 - log đúng
 - watchdog / update / security policy đúng
 
-## 13. Câu hỏi nên trả lời trước khi bắt đầu
+## 14. Câu hỏi nên trả lời trước khi bắt đầu
 
 Trước khi viết file Yocto, nên có câu trả lời cho các câu sau:
 
@@ -613,9 +729,10 @@ Trước khi viết file Yocto, nên có câu trả lời cho các câu sau:
 
 Không trả lời được các câu này mà bắt đầu sửa DTS thường sẽ đi rất chậm.
 
-## 14. Quy tắc ngắn gọn để nhớ
+## 15. Quy tắc ngắn gọn để nhớ
 
 - `machine` mô tả board cho Yocto biết
+- `distro` mô tả policy hệ thống cho Yocto biết
 - `kernel` lo source, config, patch, DTS build
 - `u-boot` lo boot chain sớm
 - `device tree` mô tả phần cứng thật
@@ -628,7 +745,7 @@ Và quy tắc quan trọng nhất:
 - chỉ custom phần board của bạn
 - đừng viết BSP từ đầu nếu chưa bị bắt buộc
 
-## 15. Áp vào repo hiện tại
+## 16. Áp vào repo hiện tại
 
 Trong repo này:
 
